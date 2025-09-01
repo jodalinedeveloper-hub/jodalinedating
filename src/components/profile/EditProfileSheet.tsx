@@ -12,6 +12,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { Loader2, Pencil, UploadCloud, X } from "lucide-react";
+import { UserProfile } from "@/types";
 
 const lifestyleTags = ["Travel", "Foodie", "Fitness", "Movies", "Music", "Art"];
 
@@ -30,10 +31,10 @@ const editProfileSchema = z.object({
       files => !files || files.every(file => ACCEPTED_IMAGE_TYPES.includes(file.type)),
       ".jpg, .jpeg, .png and .webp files are accepted."
     ),
-}).refine(data => (data.photo_urls.length + data.new_photos.length) >= 1, {
+}).refine(data => (data.photo_urls.length + (data.new_photos?.length || 0)) >= 1, {
     message: "You must have at least one photo.",
     path: ["photo_urls"], // Attach error to the photo upload area
-}).refine(data => (data.photo_urls.length + data.new_photos.length) <= 6, {
+}).refine(data => (data.photo_urls.length + (data.new_photos?.length || 0)) <= 6, {
     message: "You can upload a maximum of 6 photos.",
     path: ["photo_urls"],
 });
@@ -41,7 +42,7 @@ const editProfileSchema = z.object({
 type EditProfileValues = z.infer<typeof editProfileSchema>;
 
 interface EditProfileSheetProps {
-  profile: any;
+  profile: UserProfile;
   onUpdate: () => void;
 }
 
@@ -117,13 +118,15 @@ export const EditProfileSheet = ({ profile, onUpdate }: EditProfileSheetProps) =
 
     try {
       const uploadedUrls: string[] = [];
-      for (const photo of values.new_photos) {
-        const fileName = `${Date.now()}_${photo.name}`;
-        const filePath = `${user.id}/${fileName}`;
-        const { error: uploadError } = await supabase.storage.from('profile-photos').upload(filePath, photo);
-        if (uploadError) throw new Error(`Failed to upload photo: ${uploadError.message}`);
-        const { data: { publicUrl } } = supabase.storage.from('profile-photos').getPublicUrl(filePath);
-        uploadedUrls.push(publicUrl);
+      if (values.new_photos) {
+        for (const photo of values.new_photos) {
+          const fileName = `${Date.now()}_${photo.name}`;
+          const filePath = `${user.id}/${fileName}`;
+          const { error: uploadError } = await supabase.storage.from('profile-photos').upload(filePath, photo);
+          if (uploadError) throw new Error(`Failed to upload photo: ${uploadError.message}`);
+          const { data: { publicUrl } } = supabase.storage.from('profile-photos').getPublicUrl(filePath);
+          uploadedUrls.push(publicUrl);
+        }
       }
 
       const finalPhotoUrls = [...values.photo_urls, ...uploadedUrls];
