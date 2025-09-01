@@ -25,7 +25,7 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
+          DEFAULT: "#6D28D9", // Jodaline Purple
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -41,7 +41,7 @@ export default {
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
+          DEFAULT: "#EC4899", // Jodaline Pink
           foreground: "hsl(var(--accent-foreground))",
         },
         popover: {
