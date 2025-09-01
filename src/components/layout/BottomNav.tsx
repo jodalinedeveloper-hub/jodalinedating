@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { LayoutGrid, Heart, MessageSquare, Star } from "lucide-react";
+import { LayoutGrid, Heart, MessageSquare, Star, User } from "lucide-react";
 
 const navItems = [
   { to: "/explore", icon: LayoutGrid, label: "Explore" },
   { to: "/matches", icon: Heart, label: "Matches" },
   { to: "/chats", icon: MessageSquare, label: "Chats" },
   { to: "/premium", icon: Star, label: "Premium" },
+  { to: "/profile", icon: User, label: "Profile" },
 ];
 
 const BottomNav = () => {

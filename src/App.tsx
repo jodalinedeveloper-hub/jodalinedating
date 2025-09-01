@@ -13,6 +13,7 @@ import Explore from "./pages/Explore";
 import Matches from "./pages/Matches";
 import Chats from "./pages/Chats";
 import Premium from "./pages/Premium";
+import Profile from "./pages/Profile";
 import useAuthStore from "./store/authStore";
 import ChatDetail from "./pages/ChatDetail";
 
@@ -33,6 +34,7 @@ const AppRoutes = () => {
           <Route path="/matches" element={<Matches />} />
           <Route path="/chats" element={<Chats />} />
           <Route path="/premium" element={<Premium />} />
+          <Route path="/profile" element={<Profile />} />
         </Route>
         <Route path="/chats/:chatId" element={<ChatDetail />} />
       </Route>
