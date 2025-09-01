@@ -4,6 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
@@ -95,6 +98,8 @@ const stepDescriptions = [
 
 export function SignupForm() {
   const [currentStep, setCurrentStep] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -126,10 +131,29 @@ export function SignupForm() {
     setCurrentStep((prev) => prev - 1);
   };
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("Signup form submitted:", values);
-    showSuccess("Account created successfully! Welcome to Jodaline.");
-    // Here you would typically handle the API call for signup.
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setLoading(true);
+    const { email, password, photos, ...profileData } = values;
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          ...profileData
+        },
+      },
+    });
+
+    if (error) {
+      showError(error.message);
+    } else if (data.user) {
+      // We will handle photo uploads in a future step.
+      console.log("User created. Photo upload can be implemented here.");
+      showSuccess("Account created! Please check your email to verify your account.");
+      navigate("/login");
+    }
+    setLoading(false);
   }
 
   return (
@@ -162,7 +186,8 @@ export function SignupForm() {
                 </Button>
               )}
               {currentStep === 3 && (
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Sign Up
                 </Button>
               )}

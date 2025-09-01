@@ -4,7 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useNavigate } from "react-router-dom";
-import useAuthStore from "@/store/authStore";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { showError, showSuccess } from "@/utils/toast";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +38,7 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const [loading, setLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,11 +48,20 @@ export function LoginForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("Login form submitted:", values);
-    // Simulate a successful login
-    login();
-    navigate("/explore");
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
+    });
+    setLoading(false);
+
+    if (error) {
+      showError(error.message);
+    } else {
+      showSuccess("Logged in successfully!");
+      navigate("/explore");
+    }
   }
 
   return (
@@ -89,7 +101,8 @@ export function LoginForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Log In
             </Button>
           </form>

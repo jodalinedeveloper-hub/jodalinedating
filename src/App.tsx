@@ -14,13 +14,23 @@ import Matches from "./pages/Matches";
 import Chats from "./pages/Chats";
 import Premium from "./pages/Premium";
 import Profile from "./pages/Profile";
-import useAuthStore from "./store/authStore";
 import ChatDetail from "./pages/ChatDetail";
+import { SessionContextProvider, useAuth } from "./contexts/SessionContext";
 
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { isAuthenticated } = useAuthStore();
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  const isAuthenticated = !!session;
 
   return (
     <Routes>
@@ -49,9 +59,11 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <SessionContextProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </SessionContextProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
