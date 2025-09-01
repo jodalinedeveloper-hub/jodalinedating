@@ -3,17 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Form } from "@/components/ui/form";
 import {
   Card,
   CardContent,
@@ -22,70 +15,139 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const formSchema = z.object({
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  password: z.string().min(8, {
-    message: "Password must be at least 8 characters.",
-  }),
-});
+import Step1CoreDetails from "./signup/Step1CoreDetails";
+import Step2ProfileBasics from "./signup/Step2ProfileBasics";
+import Step3Preferences from "./signup/Step3Preferences";
+import StepIndicator from "./signup/StepIndicator";
+import { showError, showSuccess } from "@/utils/toast";
+
+const formSchema = z
+  .object({
+    // Step 1
+    email: z.string().email({ message: "Please enter a valid email." }),
+    username: z.string().min(3, "Username must be at least 3 characters."),
+    password: z.string().min(8, "Password must be at least 8 characters."),
+    confirmPassword: z.string(),
+    dateOfBirth: z.date({ required_error: "Your date of birth is required." }),
+
+    // Step 2
+    gender: z.string({ required_error: "Please select a gender." }),
+    orientation: z.string({ required_error: "Please select an orientation." }),
+    location: z.string().min(2, "Location is required."),
+    bio: z.string().max(500, "Bio cannot exceed 500 characters.").optional(),
+
+    // Step 3
+    relationshipGoals: z.enum(["casual", "long-term", "friendship"]),
+    ageRange: z.array(z.number()).default([20, 35]),
+    maxDistance: z.array(z.number()).default([50]),
+    dealBreakers: z.object({ smoker: z.boolean().default(false) }).optional(),
+    lifestyleTags: z.array(z.string()).optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .refine(
+    (data) => {
+      const today = new Date();
+      const dob = new Date(data.dateOfBirth);
+      let age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age--;
+      }
+      return age >= 18;
+    },
+    {
+      message: "You must be at least 18 years old to sign up.",
+      path: ["dateOfBirth"],
+    }
+  );
+
+const stepFields = [
+  ["email", "username", "dateOfBirth", "password", "confirmPassword"],
+  ["gender", "orientation", "location", "bio"],
+  ["relationshipGoals", "ageRange", "maxDistance"],
+];
+
+const stepDescriptions = [
+    "Enter your details to create an account.",
+    "Tell us a bit about yourself.",
+    "What are you looking for in a match?",
+]
 
 export function SignupForm() {
+  const [currentStep, setCurrentStep] = useState(0);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
       password: "",
+      confirmPassword: "",
+      username: "",
+      bio: "",
+      location: "",
+      ageRange: [20, 35],
+      maxDistance: [50],
+      dealBreakers: { smoker: false },
+      lifestyleTags: [],
     },
   });
 
+  const next = async () => {
+    const fields = stepFields[currentStep];
+    const output = await form.trigger(fields as any, { shouldFocus: true });
+
+    if (!output) return;
+
+    setCurrentStep((prev) => prev + 1);
+  };
+
+  const prev = () => {
+    setCurrentStep((prev) => prev - 1);
+  };
+
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // This is where you would handle the signup logic.
-    // For now, we'll just log the values to the console.
     console.log("Signup form submitted:", values);
+    showSuccess("Account created successfully! Welcome to Jodaline.");
+    // Here you would typically handle the API call for signup.
   }
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Create an account</CardTitle>
-        <CardDescription>
-          Enter your email and password to get started.
-        </CardDescription>
+        <CardDescription>{stepDescriptions[currentStep]}</CardDescription>
       </CardHeader>
       <CardContent>
+        <StepIndicator currentStep={currentStep} />
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="you@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+          <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+            console.error(errors);
+            showError("Please fix the errors before submitting.");
+          })} className="space-y-6 mt-6">
+            {currentStep === 0 && <Step1CoreDetails form={form} />}
+            {currentStep === 1 && <Step2ProfileBasics form={form} />}
+            {currentStep === 2 && <Step3Preferences form={form} />}
+
+            <div className="flex gap-4 justify-end">
+              {currentStep > 0 && (
+                <Button type="button" variant="outline" onClick={prev}>
+                  Back
+                </Button>
               )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              {currentStep < 2 && (
+                <Button type="button" onClick={next}>
+                  Next
+                </Button>
               )}
-            />
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-              Sign Up
-            </Button>
+              {currentStep === 2 && (
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+                  Sign Up
+                </Button>
+              )}
+            </div>
           </form>
         </Form>
       </CardContent>
