@@ -10,6 +10,8 @@ interface ChatHeaderProps {
 
 const ChatHeader = ({ user }: ChatHeaderProps) => {
   const navigate = useNavigate();
+  const photoUrl = user.photo_urls?.[0];
+  const fallback = user.username?.charAt(0) || 'U';
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-background border-b z-10 flex items-center h-16 px-4 gap-4">
@@ -17,8 +19,8 @@ const ChatHeader = ({ user }: ChatHeaderProps) => {
         <ChevronLeft className="w-6 h-6" />
       </Button>
       <Avatar>
-        <AvatarImage src={user.photo_urls[0]} alt={user.username} />
-        <AvatarFallback>{user.username.charAt(0)}</AvatarFallback>
+        {photoUrl && <AvatarImage src={photoUrl} alt={user.username} />}
+        <AvatarFallback>{fallback}</AvatarFallback>
       </Avatar>
       <h2 className="font-semibold text-lg">{user.username}</h2>
     </header>

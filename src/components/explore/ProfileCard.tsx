@@ -1,7 +1,7 @@
 import { UserProfile } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Zap } from "lucide-react";
+import { X, Heart, Zap, User as UserIcon } from "lucide-react";
 import { useSpring, animated } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import { calculateAge } from "@/lib/utils";
@@ -54,6 +54,7 @@ const ProfileCard = ({ user, onSwipe, isActive }: ProfileCardProps) => {
   const likeOpacity = x.to(x => (x > 0 ? x / (SWIPE_THRESHOLD / 2) : 0));
   const nopeOpacity = x.to(x => (x < 0 ? -x / (SWIPE_THRESHOLD / 2) : 0));
   const age = calculateAge(user.date_of_birth);
+  const photoUrl = user.photo_urls?.[0];
 
   return (
     <animated.div
@@ -75,11 +76,17 @@ const ProfileCard = ({ user, onSwipe, isActive }: ProfileCardProps) => {
           NOPE
         </animated.div>
 
-        <img
-          src={user.photo_urls[0]}
-          alt={user.username}
-          className="w-full h-full object-cover pointer-events-none"
-        />
+        {photoUrl ? (
+          <img
+            src={photoUrl}
+            alt={user.username}
+            className="w-full h-full object-cover pointer-events-none"
+          />
+        ) : (
+          <div className="w-full h-full bg-muted flex items-center justify-center">
+            <UserIcon className="w-1/2 h-1/2 text-muted-foreground" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <CardContent className="absolute bottom-0 left-0 right-0 p-6 text-white flex flex-col justify-end h-full">
           <div className="space-y-2">

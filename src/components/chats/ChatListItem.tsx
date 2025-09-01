@@ -7,12 +7,15 @@ interface ChatListItemProps {
 }
 
 const ChatListItem = ({ chat }: ChatListItemProps) => {
+  const photoUrl = chat.other_user.photo_urls?.[0];
+  const fallback = chat.other_user.username?.charAt(0) || 'U';
+
   return (
     <Link to={`/chats/${chat.other_user.id}`} className="block">
       <div className="flex items-center gap-4 p-2 rounded-lg hover:bg-muted transition-colors">
         <Avatar className="w-14 h-14">
-          <AvatarImage src={chat.other_user.photo_urls[0]} alt={chat.other_user.username} />
-          <AvatarFallback>{chat.other_user.username.charAt(0)}</AvatarFallback>
+          {photoUrl && <AvatarImage src={photoUrl} alt={chat.other_user.username} />}
+          <AvatarFallback>{fallback}</AvatarFallback>
         </Avatar>
         <div className="flex-grow overflow-hidden">
           <div className="flex justify-between items-center">
