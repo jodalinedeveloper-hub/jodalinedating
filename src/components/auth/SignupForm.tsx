@@ -55,7 +55,7 @@ const formSchema = z
       ),
 
     // Step 4
-    relationshipGoals: z.enum(["casual", "long-term", "friendship"]),
+    relationshipGoals: z.enum(["casual", "long-term", "friendship"], { required_error: "Please select your relationship goals." }),
     ageRange: z.array(z.number()).default([20, 35]),
     maxDistance: z.array(z.number()).default([50]),
     dealBreakers: z.object({ smoker: z.boolean().default(false) }).optional(),
@@ -67,6 +67,7 @@ const formSchema = z
   })
   .refine(
     (data) => {
+      if (!data.dateOfBirth) return false;
       const today = new Date();
       const dob = new Date(data.dateOfBirth);
       let age = today.getFullYear() - dob.getFullYear();
@@ -82,11 +83,11 @@ const formSchema = z
     }
   );
 
-const stepFields = [
+const stepFields: (keyof z.infer<typeof formSchema>)[][] = [
   ["email", "username", "dateOfBirth", "password", "confirmPassword"],
   ["gender", "orientation", "location", "bio"],
   ["photos"],
-  ["relationshipGoals", "ageRange", "maxDistance"],
+  ["relationshipGoals", "ageRange", "maxDistance", "dealBreakers", "lifestyleTags"],
 ];
 
 const stepDescriptions = [
@@ -120,7 +121,7 @@ export function SignupForm() {
 
   const next = async () => {
     const fields = stepFields[currentStep];
-    const output = await form.trigger(fields as any, { shouldFocus: true });
+    const output = await form.trigger(fields, { shouldFocus: true });
 
     if (!output) return;
 
@@ -156,6 +157,21 @@ export function SignupForm() {
     setLoading(false);
   }
 
+  const onInvalid = (errors: any) => {
+    console.error("Form validation errors:", errors);
+    const firstErrorField = Object.keys(errors)[0] as keyof z.infer<typeof formSchema>;
+
+    if (firstErrorField) {
+      const stepWithError = stepFields.findIndex(fields => fields.includes(firstErrorField));
+      if (stepWithError !== -1) {
+        setCurrentStep(stepWithError);
+        showError("Please fix the errors on this step before submitting.");
+        return;
+      }
+    }
+    showError("Please fix the errors before submitting.");
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -165,10 +181,7 @@ export function SignupForm() {
       <CardContent>
         <StepIndicator currentStep={currentStep} totalSteps={4} />
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
-            console.error(errors);
-            showError("Please fix the errors before submitting.");
-          })} className="space-y-6 mt-6">
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6 mt-6">
             {currentStep === 0 && <Step1CoreDetails form={form} />}
             {currentStep === 1 && <Step2ProfileBasics form={form} />}
             {currentStep === 2 && <Step3PhotoUpload form={form} />}
