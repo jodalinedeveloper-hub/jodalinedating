@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -15,11 +15,27 @@ import { Loader2, Pencil, UploadCloud, X } from "lucide-react";
 
 const lifestyleTags = ["Travel", "Foodie", "Fitness", "Movies", "Music", "Art"];
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
 const editProfileSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters."),
   bio: z.string().max(500, "Bio cannot exceed 500 characters.").optional(),
   lifestyle_tags: z.array(z.string()).optional(),
-  photo_urls: z.array(z.string()).min(1, "You must have at least one photo.").max(6, "You can upload a maximum of 6 photos."),
+  photo_urls: z.array(z.string()), // Existing URLs
+  new_photos: z.array(z.any()) // New File objects
+    .refine(files => !files || files.every(file => file instanceof File), "Invalid file format.")
+    .refine(files => !files || files.every(file => file.size <= MAX_FILE_SIZE), `Max file size is 5MB.`)
+    .refine(
+      files => !files || files.every(file => ACCEPTED_IMAGE_TYPES.includes(file.type)),
+      ".jpg, .jpeg, .png and .webp files are accepted."
+    ),
+}).refine(data => (data.photo_urls.length + data.new_photos.length) >= 1, {
+    message: "You must have at least one photo.",
+    path: ["photo_urls"], // Attach error to the photo upload area
+}).refine(data => (data.photo_urls.length + data.new_photos.length) <= 6, {
+    message: "You can upload a maximum of 6 photos.",
+    path: ["photo_urls"],
 });
 
 type EditProfileValues = z.infer<typeof editProfileSchema>;
@@ -32,7 +48,6 @@ interface EditProfileSheetProps {
 export const EditProfileSheet = ({ profile, onUpdate }: EditProfileSheetProps) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [newPhotos, setNewPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>(profile.photo_urls || []);
 
   const form = useForm<EditProfileValues>({
@@ -42,35 +57,49 @@ export const EditProfileSheet = ({ profile, onUpdate }: EditProfileSheetProps) =
       bio: profile.bio || "",
       lifestyle_tags: profile.lifestyle_tags || [],
       photo_urls: profile.photo_urls || [],
+      new_photos: [],
     },
   });
+
+  const existingUrls = form.watch("photo_urls");
+  const newPhotos = form.watch("new_photos");
+
+  useEffect(() => {
+    const newPhotoPreviews = newPhotos.map(file => URL.createObjectURL(file));
+    setPreviews([...existingUrls, ...newPhotoPreviews]);
+
+    return () => {
+      newPhotoPreviews.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [existingUrls, newPhotos]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
-    const totalPhotos = previews.length + files.length;
+    const currentNewPhotos = form.getValues("new_photos");
+    const currentExistingUrls = form.getValues("photo_urls");
+
+    const totalPhotos = currentExistingUrls.length + currentNewPhotos.length + files.length;
     if (totalPhotos > 6) {
       showError("You can upload a maximum of 6 photos.");
       return;
     }
-
-    setNewPhotos(prev => [...prev, ...files]);
-    const newPreviews = files.map(file => URL.createObjectURL(file));
-    setPreviews(prev => [...prev, ...newPreviews]);
+    
+    form.setValue("new_photos", [...currentNewPhotos, ...files], { shouldValidate: true });
   };
 
-  const removeImage = (indexToRemove: number, url: string) => {
-    setPreviews(prev => prev.filter((_, i) => i !== indexToRemove));
-    
-    // If it's an existing URL, update form value
-    if (url.startsWith('http')) {
-      const currentUrls = form.getValues("photo_urls");
-      form.setValue("photo_urls", currentUrls.filter(u => u !== url));
+  const removeImage = (indexToRemove: number) => {
+    const currentExistingUrls = form.getValues("photo_urls");
+    const currentNewPhotos = form.getValues("new_photos");
+
+    if (indexToRemove < currentExistingUrls.length) {
+      const updatedUrls = currentExistingUrls.filter((_, i) => i !== indexToRemove);
+      form.setValue("photo_urls", updatedUrls, { shouldValidate: true });
     } else {
-      // If it's a new file preview, remove from newPhotos
-      const fileIndex = previews.indexOf(url) - form.getValues("photo_urls").length;
-      setNewPhotos(prev => prev.filter((_, i) => i !== fileIndex));
+      const newPhotoIndex = indexToRemove - currentExistingUrls.length;
+      const updatedNewPhotos = currentNewPhotos.filter((_, i) => i !== newPhotoIndex);
+      form.setValue("new_photos", updatedNewPhotos, { shouldValidate: true });
     }
   };
 
@@ -87,9 +116,8 @@ export const EditProfileSheet = ({ profile, onUpdate }: EditProfileSheetProps) =
     setLoading(true);
 
     try {
-      // 1. Upload new photos
       const uploadedUrls: string[] = [];
-      for (const photo of newPhotos) {
+      for (const photo of values.new_photos) {
         const fileName = `${Date.now()}_${photo.name}`;
         const filePath = `${user.id}/${fileName}`;
         const { error: uploadError } = await supabase.storage.from('profile-photos').upload(filePath, photo);
@@ -98,10 +126,8 @@ export const EditProfileSheet = ({ profile, onUpdate }: EditProfileSheetProps) =
         uploadedUrls.push(publicUrl);
       }
 
-      // 2. Combine old and new photo URLs
       const finalPhotoUrls = [...values.photo_urls, ...uploadedUrls];
 
-      // 3. Update profile in database
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -116,7 +142,7 @@ export const EditProfileSheet = ({ profile, onUpdate }: EditProfileSheetProps) =
       if (updateError) throw new Error(`Failed to update profile: ${updateError.message}`);
 
       showSuccess("Profile updated successfully!");
-      onUpdate(); // Refetch profile data on the profile page
+      onUpdate();
       document.getElementById('close-sheet')?.click();
     } catch (error: any) {
       showError(error.message);
@@ -140,7 +166,7 @@ export const EditProfileSheet = ({ profile, onUpdate }: EditProfileSheetProps) =
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 py-6">
             <FormField
               control={form.control}
-              name="photo_urls"
+              name="photo_urls" // Error messages will attach here
               render={() => (
                 <FormItem>
                   <FormLabel>Your Photos</FormLabel>
@@ -148,7 +174,7 @@ export const EditProfileSheet = ({ profile, onUpdate }: EditProfileSheetProps) =
                     {previews.map((src, index) => (
                       <div key={index} className="relative aspect-square">
                         <img src={src} alt={`Preview ${index + 1}`} className="w-full h-full object-cover rounded-md" />
-                        <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 rounded-full" onClick={() => removeImage(index, src)}>
+                        <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
