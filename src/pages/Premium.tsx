@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,7 +8,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { CheckCircle, Eye, Heart, Rocket, Star, Zap } from "lucide-react";
+import { Eye, Heart, Rocket, Star, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { showSuccess } from "@/utils/toast";
 
 const premiumFeatures = [
   {
@@ -32,7 +35,39 @@ const premiumFeatures = [
   },
 ];
 
+const pricingPlans = [
+  {
+    id: "1-month",
+    title: "1 Month",
+    price: "KES 1,000",
+    description: "per month",
+    popular: false,
+  },
+  {
+    id: "6-months",
+    title: "6 Months",
+    price: "KES 4,800",
+    description: "KES 800 per month",
+    popular: true,
+  },
+  {
+    id: "12-months",
+    title: "12 Months",
+    price: "KES 7,200",
+    description: "KES 600 per month",
+    popular: false,
+  },
+];
+
 const Premium = () => {
+  const [selectedPlan, setSelectedPlan] = useState<string | null>("6-months");
+
+  const handleChoosePlan = (planId: string, planTitle: string) => {
+    setSelectedPlan(planId);
+    showSuccess(`You've selected the ${planTitle} plan!`);
+    // In a real application, this would trigger the payment process.
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <div className="text-center space-y-4 mb-10">
@@ -64,45 +99,37 @@ const Premium = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>1 Month</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">KES 1,000</p>
-            <p className="text-sm text-muted-foreground">per month</p>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full">Choose Plan</Button>
-          </CardFooter>
-        </Card>
-        <Card className="border-primary relative">
-          <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-            Popular
-          </Badge>
-          <CardHeader>
-            <CardTitle>6 Months</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">KES 4,800</p>
-            <p className="text-sm text-muted-foreground">KES 800 per month</p>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full">Choose Plan</Button>
-          </CardFooter>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>12 Months</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">KES 7,200</p>
-            <p className="text-sm text-muted-foreground">KES 600 per month</p>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full">Choose Plan</Button>
-          </CardFooter>
-        </Card>
+        {pricingPlans.map((plan) => (
+          <Card
+            key={plan.id}
+            className={cn(
+              "relative transition-all",
+              selectedPlan === plan.id && "border-primary ring-2 ring-primary"
+            )}
+          >
+            {plan.popular && (
+              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+                Popular
+              </Badge>
+            )}
+            <CardHeader>
+              <CardTitle>{plan.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold">{plan.price}</p>
+              <p className="text-sm text-muted-foreground">{plan.description}</p>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full"
+                onClick={() => handleChoosePlan(plan.id, plan.title)}
+                disabled={selectedPlan === plan.id}
+              >
+                {selectedPlan === plan.id ? "Selected" : "Choose Plan"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
       </div>
     </div>
   );
