@@ -23,6 +23,12 @@ interface Step1CoreDetailsProps {
 }
 
 const Step1CoreDetails = ({ form }: Step1CoreDetailsProps) => {
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() - 18);
+
+  const minDate = new Date();
+  minDate.setFullYear(minDate.getFullYear() - 100);
+
   return (
     <div className="space-y-4">
       <FormField
@@ -79,11 +85,15 @@ const Step1CoreDetails = ({ form }: Step1CoreDetailsProps) => {
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
+                  captionLayout="dropdown-nav"
+                  fromYear={minDate.getFullYear()}
+                  toYear={maxDate.getFullYear()}
                   selected={field.value}
                   onSelect={field.onChange}
                   disabled={(date) =>
-                    date > new Date() || date < new Date("1900-01-01")
+                    date > maxDate || date < minDate
                   }
+                  defaultMonth={field.value || maxDate}
                   initialFocus
                 />
               </PopoverContent>
