@@ -48,6 +48,8 @@ const ProfileCard = ({ user, onSwipe }: ProfileCardProps) => {
   const likeOpacity = x.to(x => (x > 0 ? x / (SWIPE_THRESHOLD / 2) : 0));
   const nopeOpacity = x.to(x => (x < 0 ? -x / (SWIPE_THRESHOLD / 2) : 0));
 
+  const firstPrompt = user.prompts && user.prompts[0];
+
   return (
     <animated.div
       {...bind()}
@@ -75,12 +77,18 @@ const ProfileCard = ({ user, onSwipe }: ProfileCardProps) => {
           className="w-full h-full object-cover pointer-events-none"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-        <CardContent className="absolute bottom-0 left-0 right-0 p-6 text-white">
-          <div className="space-y-1">
+        <CardContent className="absolute bottom-0 left-0 right-0 p-6 text-white flex flex-col justify-end h-full">
+          <div>
             <h2 className="text-3xl font-bold">
               {user.name}, {user.age}
             </h2>
-            <p className="text-base text-gray-200 line-clamp-2">{user.bio}</p>
+            <p className="text-base text-gray-200 line-clamp-2 mt-1">{user.bio}</p>
+            {firstPrompt && (
+              <div className="mt-4 bg-white/20 backdrop-blur-sm p-3 rounded-lg">
+                <p className="text-sm font-semibold">{firstPrompt.question}</p>
+                <p className="text-base italic">"{firstPrompt.answer}"</p>
+              </div>
+            )}
           </div>
           <div className="flex justify-around items-center mt-6">
             <Button
