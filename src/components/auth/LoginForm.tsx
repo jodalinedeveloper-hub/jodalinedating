@@ -3,6 +3,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { useNavigate } from "react-router-dom";
+import useAuthStore from "@/store/authStore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +34,9 @@ const formSchema = z.object({
 });
 
 export function LoginForm() {
+  const navigate = useNavigate();
+  const { login } = useAuthStore();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -41,9 +46,10 @@ export function LoginForm() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // This is where you would handle the login logic.
-    // For now, we'll just log the values to the console.
     console.log("Login form submitted:", values);
+    // Simulate a successful login
+    login();
+    navigate("/explore");
   }
 
   return (
