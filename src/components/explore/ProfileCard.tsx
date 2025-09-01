@@ -7,7 +7,7 @@ import { useDrag } from '@use-gesture/react';
 
 interface ProfileCardProps {
   user: UserProfile;
-  onSwipe: (direction: 'left' | 'right') => void;
+  onSwipe: (direction: 'left' | 'right' | 'super') => void;
 }
 
 const SWIPE_THRESHOLD = window.innerWidth / 3;
@@ -20,8 +20,8 @@ const ProfileCard = ({ user, onSwipe }: ProfileCardProps) => {
     config: { friction: 50, tension: 800 },
   }));
 
-  const handleSwipeAnimation = (direction: 'left' | 'right') => {
-    const dir = direction === 'right' ? 1 : -1;
+  const handleSwipeAnimation = (direction: 'left' | 'right' | 'super') => {
+    const dir = direction === 'left' ? -1 : 1;
     // Animate out
     api.start({
       x: (200 + window.innerWidth) * dir,
@@ -103,7 +103,7 @@ const ProfileCard = ({ user, onSwipe }: ProfileCardProps) => {
               variant="outline"
               size="icon"
               className="w-16 h-16 rounded-full border-2 border-primary text-primary bg-white/20 backdrop-blur-sm hover:bg-primary hover:text-white"
-              onClick={() => console.log("Super Like")}
+              onClick={() => handleSwipeAnimation('super')}
             >
               <Zap className="w-8 h-8" />
             </Button>
