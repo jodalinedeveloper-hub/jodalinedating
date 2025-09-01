@@ -1,6 +1,7 @@
 import { Match } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
 
 interface ChatListItemProps {
   chat: Match;
@@ -9,6 +10,11 @@ interface ChatListItemProps {
 const ChatListItem = ({ chat }: ChatListItemProps) => {
   const photoUrl = chat.other_user.photo_urls?.[0];
   const fallback = chat.other_user.username?.charAt(0) || 'U';
+
+  const lastMessage = chat.last_message_content || "Start the conversation!";
+  const timestamp = chat.last_message_created_at
+    ? formatDistanceToNow(new Date(chat.last_message_created_at), { addSuffix: true })
+    : "";
 
   return (
     <Link to={`/chats/${chat.other_user.id}`} className="block">
@@ -20,9 +26,10 @@ const ChatListItem = ({ chat }: ChatListItemProps) => {
         <div className="flex-grow overflow-hidden">
           <div className="flex justify-between items-center">
             <h3 className="font-semibold truncate">{chat.other_user.username}</h3>
+            {timestamp && <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">{timestamp}</span>}
           </div>
           <p className="text-sm text-muted-foreground truncate">
-            Start the conversation!
+            {lastMessage}
           </p>
         </div>
       </div>

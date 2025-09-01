@@ -1,49 +1,16 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut } from "lucide-react";
+import { LogOut, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/SessionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { showError } from "@/utils/toast";
-import { useEffect, useState } from "react";
 import { EditProfileSheet } from "@/components/profile/EditProfileSheet";
-
-interface ProfileData {
-  username: string;
-  bio: string;
-  lifestyle_tags: string[];
-  photo_urls: string[];
-}
+import { useProfile } from "@/hooks/use-profile";
 
 const Profile = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchProfile = async () => {
-    if (user) {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username, bio, lifestyle_tags, photo_urls')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        showError("Could not fetch profile.");
-        console.error(error);
-      } else {
-        setProfile(data);
-      }
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProfile();
-  }, [user]);
+  const { data: profile, isLoading, refetch } = useProfile();
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -54,8 +21,8 @@ const Profile = () => {
     }
   };
 
-  if (loading || !profile) {
-    return <div className="container mx-auto p-4 text-center">Loading profile...</div>;
+  if (isLoading || !profile) {
+    return <div className="container mx-auto p-4 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto" /></div>;
   }
 
   return (
@@ -69,7 +36,7 @@ const Profile = () => {
           <CardTitle className="text-2xl">{profile.username}</CardTitle>
           <p className="text-muted-foreground">@{profile.username}</p>
           <div className="pt-4">
-            <EditProfileSheet profile={profile} onUpdate={fetchProfile} />
+            <EditProfileSheet profile={profile} onUpdate={refetch} />
           </div>
         </CardHeader>
         <CardContent className="space-y-6">

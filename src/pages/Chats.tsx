@@ -8,8 +8,9 @@ import { Loader2 } from "lucide-react";
 const fetchMatchesForChat = async (userId: string | undefined): Promise<Match[]> => {
   if (!userId) return [];
 
+  // 1. Fetch matches and their last message from the new view
   const { data: matchesData, error: matchesError } = await supabase
-    .from('matches')
+    .from('matches_with_last_message')
     .select('*')
     .or(`user1_id.eq.${userId},user2_id.eq.${userId}`);
 
@@ -18,12 +19,14 @@ const fetchMatchesForChat = async (userId: string | undefined): Promise<Match[]>
     return [];
   }
 
+  // 2. Get the IDs of the other users
   const otherUserIds = matchesData.map(match => 
     match.user1_id === userId ? match.user2_id : match.user1_id
   );
 
   if (otherUserIds.length === 0) return [];
 
+  // 3. Fetch the profiles for all other users
   const { data: profilesData, error: profilesError } = await supabase
     .from('profiles')
     .select('*')
@@ -34,6 +37,7 @@ const fetchMatchesForChat = async (userId: string | undefined): Promise<Match[]>
     return [];
   }
 
+  // 4. Combine the data
   const profilesMap = new Map(profilesData.map(p => [p.id, p]));
   const combinedMatches = matchesData.map(match => ({
     ...match,

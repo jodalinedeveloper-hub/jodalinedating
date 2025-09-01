@@ -9,9 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserProfile } from "@/types";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/SessionContext";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/use-profile";
 
 interface MatchNotificationProps {
   open: boolean;
@@ -20,20 +18,7 @@ interface MatchNotificationProps {
 }
 
 export const MatchNotification = ({ open, onOpenChange, matchedUser }: MatchNotificationProps) => {
-  const { user } = useAuth();
-  const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
-
-  useEffect(() => {
-    const fetchCurrentUserProfile = async () => {
-      if (user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        setCurrentUserProfile(data);
-      }
-    };
-    if (open) {
-      fetchCurrentUserProfile();
-    }
-  }, [user, open]);
+  const { data: currentUserProfile } = useProfile();
 
   if (!currentUserProfile || !matchedUser) return null;
 

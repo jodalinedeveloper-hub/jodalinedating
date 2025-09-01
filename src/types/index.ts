@@ -21,4 +21,6 @@ export interface Match {
   user2_id: string;
   created_at: string;
   other_user: UserProfile; // Populated in the app
+  last_message_content?: string;
+  last_message_created_at?: string;
 }
