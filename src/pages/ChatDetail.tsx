@@ -3,17 +3,22 @@ import { UserProfile, ChatMessage } from "@/types";
 import ChatHeader from "@/components/chats/ChatHeader";
 import MessageBubble from "@/components/chats/MessageBubble";
 import MessageInput from "@/components/chats/MessageInput";
-import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/SessionContext";
 import { Loader2 } from "lucide-react";
 import { showError } from "@/utils/toast";
 
-const fetchChatData = async (currentUserId?: string, otherUserId?: string) => {
+interface ChatData {
+  otherUser: UserProfile;
+  matchId: number;
+  messages: ChatMessage[];
+}
+
+const fetchChatData = async (currentUserId?: string, otherUserId?: string): Promise<ChatData> => {
   if (!currentUserId || !otherUserId) throw new Error("User IDs are required");
 
-  // 1. Fetch the other user's profile
   const { data: otherUser, error: profileError } = await supabase
     .from('profiles')
     .select('*')
@@ -21,7 +26,6 @@ const fetchChatData = async (currentUserId?: string, otherUserId?: string) => {
     .single();
   if (profileError) throw new Error("Could not find user.");
 
-  // 2. Find the match record
   const { data: match, error: matchError } = await supabase
     .from('matches')
     .select('id')
@@ -29,7 +33,6 @@ const fetchChatData = async (currentUserId?: string, otherUserId?: string) => {
     .single();
   if (matchError || !match) throw new Error("Match not found.");
 
-  // 3. Fetch initial messages
   const { data: messages, error: messagesError } = await supabase
     .from('messages')
     .select('*')
@@ -43,17 +46,18 @@ const fetchChatData = async (currentUserId?: string, otherUserId?: string) => {
 const ChatDetail = () => {
   const { chatId: otherUserId } = useParams<{ chatId: string }>();
   const { user: currentUser } = useAuth();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const queryKey = ['chat', currentUser?.id, otherUserId];
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ['chat', currentUser?.id, otherUserId],
+    queryKey: queryKey,
     queryFn: () => fetchChatData(currentUser?.id, otherUserId),
     enabled: !!currentUser && !!otherUserId,
-    onSuccess: (data) => {
-      setMessages(data.messages);
-    }
   });
+
+  const messages = data?.messages ?? [];
 
   useEffect(() => {
     if (!data?.matchId || !currentUser) return;
@@ -64,10 +68,14 @@ const ChatDetail = () => {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `match_id=eq.${data.matchId}` },
         (payload) => {
-          // Only add the message if it's from the other user
-          // The sender's message is added optimistically
           if (payload.new.sender_id !== currentUser.id) {
-            setMessages((prevMessages) => [...prevMessages, payload.new as ChatMessage]);
+            queryClient.setQueryData<ChatData>(queryKey, (oldData) => {
+              if (!oldData) return oldData;
+              return {
+                ...oldData,
+                messages: [...oldData.messages, payload.new],
+              };
+            });
           }
         }
       )
@@ -76,26 +84,32 @@ const ChatDetail = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [data?.matchId, currentUser]);
+  }, [data?.matchId, currentUser, queryClient, queryKey]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSendMessage = async (text: string) => {
-    if (!currentUser || !data?.matchId) return;
+    if (!currentUser || !data) return;
 
-    // Optimistically update the UI for the sender
     const optimisticMessage: ChatMessage = {
-      id: Date.now(), // Use a temporary unique ID
+      id: Date.now(),
       match_id: data.matchId,
       sender_id: currentUser.id,
       content: text,
       created_at: new Date().toISOString(),
     };
-    setMessages(prevMessages => [...prevMessages, optimisticMessage]);
 
-    // Send the message to the database
+    // Optimistic update
+    queryClient.setQueryData<ChatData>(queryKey, (oldData) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        messages: [...oldData.messages, optimisticMessage],
+      };
+    });
+
     const { error } = await supabase.from('messages').insert({
       match_id: data.matchId,
       sender_id: currentUser.id,
@@ -103,10 +117,15 @@ const ChatDetail = () => {
     });
 
     if (error) {
-      console.error("Error sending message:", error);
-      // If the message fails to send, remove it from the UI and show an error
-      setMessages(prevMessages => prevMessages.filter(m => m.id !== optimisticMessage.id));
       showError("Failed to send message. Please try again.");
+      // Revert optimistic update
+      queryClient.setQueryData<ChatData>(queryKey, (oldData) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          messages: oldData.messages.filter(m => m.id !== optimisticMessage.id),
+        };
+      });
     }
   };
 
