@@ -1,27 +1,24 @@
-export interface Prompt {
-  question: string;
-  answer: string;
-}
-
 export interface UserProfile {
   id: string;
-  name: string;
-  age: number;
+  username: string;
+  date_of_birth: string; // YYYY-MM-DD
   bio: string;
-  photos: string[];
-  interests: string[];
-  prompts: Prompt[];
+  photo_urls: string[];
+  lifestyle_tags: string[];
 }
 
 export interface ChatMessage {
-  id:string;
-  text: string;
-  timestamp: string;
-  senderId: string; // ID of the user who sent the message
+  id: number;
+  match_id: number;
+  sender_id: string;
+  content: string;
+  created_at: string;
 }
 
-export interface ChatConversation {
-  id: string;
-  user: UserProfile; // The other user in the conversation
-  messages: ChatMessage[];
+export interface Match {
+  id: number;
+  user1_id: string;
+  user2_id: string;
+  created_at: string;
+  other_user: UserProfile; // Populated in the app
 }

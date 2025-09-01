@@ -4,17 +4,20 @@ import { Button } from "@/components/ui/button";
 import { X, Heart, Zap } from "lucide-react";
 import { useSpring, animated } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
+import { calculateAge } from "@/lib/utils";
 
 interface ProfileCardProps {
   user: UserProfile;
   onSwipe: (direction: 'left' | 'right' | 'super') => void;
+  isActive: boolean;
 }
 
 const SWIPE_THRESHOLD = window.innerWidth / 3;
 
-const ProfileCard = ({ user, onSwipe }: ProfileCardProps) => {
-  const [{ x, rot, scale }, api] = useSpring(() => ({
+const ProfileCard = ({ user, onSwipe, isActive }: ProfileCardProps) => {
+  const [{ x, y, rot, scale }, api] = useSpring(() => ({
     x: 0,
+    y: 0,
     rot: 0,
     scale: 1,
     config: { friction: 50, tension: 800 },
@@ -22,18 +25,21 @@ const ProfileCard = ({ user, onSwipe }: ProfileCardProps) => {
 
   const handleSwipeAnimation = (direction: 'left' | 'right' | 'super') => {
     const dir = direction === 'left' ? -1 : 1;
-    // Animate out
     api.start({
       x: (200 + window.innerWidth) * dir,
-      rot: dir * 15,
+      rot: dir * 10,
       config: { friction: 50, tension: 200 },
-      onRest: () => onSwipe(direction), // Call onSwipe after animation completes
+      onRest: () => onSwipe(direction),
     });
   };
 
-  const bind = useDrag(({ down, movement: [mx] }) => {
-    if (!down && Math.abs(mx) > SWIPE_THRESHOLD) {
-      handleSwipeAnimation(mx > 0 ? 'right' : 'left');
+  const bind = useDrag(({ down, movement: [mx], direction: [xDir], velocity: [vx] }) => {
+    if (!isActive) return;
+    const trigger = vx > 0.2;
+    const dir = xDir < 0 ? -1 : 1;
+
+    if (!down && trigger) {
+      handleSwipeAnimation(dir > 0 ? 'right' : 'left');
     } else {
       api.start({
         x: down ? mx : 0,
@@ -44,20 +50,17 @@ const ProfileCard = ({ user, onSwipe }: ProfileCardProps) => {
     }
   });
 
-  // Opacity for LIKE/NOPE stamps
   const likeOpacity = x.to(x => (x > 0 ? x / (SWIPE_THRESHOLD / 2) : 0));
   const nopeOpacity = x.to(x => (x < 0 ? -x / (SWIPE_THRESHOLD / 2) : 0));
-
-  const firstPrompt = user.prompts && user.prompts[0];
+  const age = calculateAge(user.date_of_birth);
 
   return (
     <animated.div
       {...bind()}
-      style={{ x, scale, rotate: rot, touchAction: 'none' }}
-      className="w-full h-full cursor-grab active:cursor-grabbing"
+      style={{ x, y, scale, rotate: rot, touchAction: 'none' }}
+      className="absolute w-full h-full cursor-grab active:cursor-grabbing"
     >
       <Card className="w-full h-full mx-auto overflow-hidden relative shadow-lg">
-        {/* LIKE/NOPE Overlays */}
         <animated.div
           className="absolute top-10 left-4 text-green-500 border-4 border-green-500 rounded-lg px-4 py-1 text-4xl font-bold transform -rotate-12 pointer-events-none"
           style={{ opacity: likeOpacity, zIndex: 1 }}
@@ -72,23 +75,17 @@ const ProfileCard = ({ user, onSwipe }: ProfileCardProps) => {
         </animated.div>
 
         <img
-          src={user.photos[0]}
-          alt={user.name}
+          src={user.photo_urls[0]}
+          alt={user.username}
           className="w-full h-full object-cover pointer-events-none"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <CardContent className="absolute bottom-0 left-0 right-0 p-6 text-white flex flex-col justify-end h-full">
           <div>
             <h2 className="text-3xl font-bold">
-              {user.name}, {user.age}
+              {user.username}{age > 0 && `, ${age}`}
             </h2>
             <p className="text-base text-gray-200 line-clamp-2 mt-1">{user.bio}</p>
-            {firstPrompt && (
-              <div className="mt-4 bg-white/20 backdrop-blur-sm p-3 rounded-lg">
-                <p className="text-sm font-semibold">{firstPrompt.question}</p>
-                <p className="text-base italic">"{firstPrompt.answer}"</p>
-              </div>
-            )}
           </div>
           <div className="flex justify-around items-center mt-6">
             <Button

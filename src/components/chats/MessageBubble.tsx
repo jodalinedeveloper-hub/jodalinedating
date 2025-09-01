@@ -16,7 +16,7 @@ const MessageBubble = ({ message, isCurrentUser }: MessageBubbleProps) => {
           : "bg-muted"
       )}
     >
-      {message.text}
+      {message.content}
     </div>
   );
 };
