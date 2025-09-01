@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/SessionContext";
 import { Loader2 } from "lucide-react";
+import { showError } from "@/utils/toast";
 
 const fetchChatData = async (currentUserId?: string, otherUserId?: string) => {
   if (!currentUserId || !otherUserId) throw new Error("User IDs are required");
@@ -80,15 +81,28 @@ const ChatDetail = () => {
   const handleSendMessage = async (text: string) => {
     if (!currentUser || !data?.matchId) return;
 
-    const newMessage = {
+    // Optimistically update the UI for the sender
+    const optimisticMessage: ChatMessage = {
+      id: Date.now(), // Use a temporary unique ID
       match_id: data.matchId,
       sender_id: currentUser.id,
       content: text,
+      created_at: new Date().toISOString(),
     };
+    setMessages(prevMessages => [...prevMessages, optimisticMessage]);
 
-    const { error } = await supabase.from('messages').insert(newMessage);
+    // Send the message to the database
+    const { error } = await supabase.from('messages').insert({
+      match_id: data.matchId,
+      sender_id: currentUser.id,
+      content: text,
+    });
+
     if (error) {
       console.error("Error sending message:", error);
+      // If the message fails to send, remove it from the UI and show an error
+      setMessages(prevMessages => prevMessages.filter(m => m.id !== optimisticMessage.id));
+      showError("Failed to send message. Please try again.");
     }
   };
 
