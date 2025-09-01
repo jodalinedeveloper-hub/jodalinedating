@@ -117,6 +117,7 @@ export const EditProfileSheet = ({ profile, onUpdate }: EditProfileSheetProps) =
     setLoading(true);
 
     try {
+      // 1. Upload new photos
       const uploadedUrls: string[] = [];
       if (values.new_photos) {
         for (const photo of values.new_photos) {
@@ -131,6 +132,7 @@ export const EditProfileSheet = ({ profile, onUpdate }: EditProfileSheetProps) =
 
       const finalPhotoUrls = [...values.photo_urls, ...uploadedUrls];
 
+      // 2. Update profile in the database
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -143,6 +145,20 @@ export const EditProfileSheet = ({ profile, onUpdate }: EditProfileSheetProps) =
         .eq('id', user.id);
 
       if (updateError) throw new Error(`Failed to update profile: ${updateError.message}`);
+
+      // 3. Delete orphaned photos from storage
+      const initialUrls = profile.photo_urls || [];
+      const urlsToDelete = initialUrls.filter(url => !finalPhotoUrls.includes(url));
+      if (urlsToDelete.length > 0) {
+        const pathsToDelete = urlsToDelete.map(url => {
+          const urlParts = url.split('/');
+          return `${urlParts[urlParts.length - 2]}/${urlParts[urlParts.length - 1]}`;
+        });
+        const { error: deleteError } = await supabase.storage.from('profile-photos').remove(pathsToDelete);
+        if (deleteError) {
+          console.error("Failed to delete orphaned photos:", deleteError);
+        }
+      }
 
       showSuccess("Profile updated successfully!");
       onUpdate();
