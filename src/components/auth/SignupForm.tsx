@@ -136,7 +136,8 @@ export function SignupForm() {
     setLoading(true);
     const { email, password, photos, ...profileData } = values;
 
-    const { data, error } = await supabase.auth.signUp({
+    // 1. Sign up the user
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -146,21 +147,57 @@ export function SignupForm() {
       },
     });
 
-    setLoading(false);
-
-    if (error) {
-      showError(error.message);
-    } else if (data.user) {
-      // We will handle photo uploads in a future step.
-      console.log("User created. Photo upload can be implemented here.");
-      
-      // If email confirmation is disabled, signUp returns a session and the user is logged in.
-      showSuccess("Account created successfully! Welcome!");
-      navigate("/explore");
-    } else {
-      // This case should not be hit if email confirmation is disabled, but as a fallback...
-      showError("An unexpected error occurred during signup.");
+    if (authError) {
+      setLoading(false);
+      showError(authError.message);
+      return;
     }
+
+    if (!authData.user) {
+        setLoading(false);
+        showError("Could not create user account.");
+        return;
+    }
+
+    const userId = authData.user.id;
+
+    // 2. Upload photos
+    const photoUrls: string[] = [];
+    for (const photo of photos) {
+        const fileName = `${Date.now()}_${photo.name}`;
+        const filePath = `${userId}/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+            .from('profile-photos')
+            .upload(filePath, photo);
+
+        if (uploadError) {
+            showError(`Failed to upload photo: ${photo.name}`);
+            console.error(uploadError);
+        } else {
+            const { data: { publicUrl } } = supabase.storage
+                .from('profile-photos')
+                .getPublicUrl(filePath);
+            photoUrls.push(publicUrl);
+        }
+    }
+
+    // 3. Update the profile with photo URLs
+    if (photoUrls.length > 0) {
+        const { error: profileUpdateError } = await supabase
+            .from('profiles')
+            .update({ photo_urls: photoUrls })
+            .eq('id', userId);
+
+        if (profileUpdateError) {
+            showError("Account created, but failed to save photos.");
+            console.error(profileUpdateError);
+        }
+    }
+
+    setLoading(false);
+    showSuccess("Account created successfully! Welcome!");
+    navigate("/explore");
   }
 
   const onInvalid = (errors: any) => {
