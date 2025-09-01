@@ -146,15 +146,21 @@ export function SignupForm() {
       },
     });
 
+    setLoading(false);
+
     if (error) {
       showError(error.message);
     } else if (data.user) {
       // We will handle photo uploads in a future step.
       console.log("User created. Photo upload can be implemented here.");
-      showSuccess("Account created! Please check your email to verify your account.");
-      navigate("/login");
+      
+      // If email confirmation is disabled, signUp returns a session and the user is logged in.
+      showSuccess("Account created successfully! Welcome!");
+      navigate("/explore");
+    } else {
+      // This case should not be hit if email confirmation is disabled, but as a fallback...
+      showError("An unexpected error occurred during signup.");
     }
-    setLoading(false);
   }
 
   const onInvalid = (errors: any) => {
