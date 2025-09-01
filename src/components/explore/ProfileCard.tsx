@@ -5,6 +5,7 @@ import { X, Heart, Zap } from "lucide-react";
 import { useSpring, animated } from '@react-spring/web';
 import { useDrag } from '@use-gesture/react';
 import { calculateAge } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface ProfileCardProps {
   user: UserProfile;
@@ -81,11 +82,20 @@ const ProfileCard = ({ user, onSwipe, isActive }: ProfileCardProps) => {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <CardContent className="absolute bottom-0 left-0 right-0 p-6 text-white flex flex-col justify-end h-full">
-          <div>
+          <div className="space-y-2">
             <h2 className="text-3xl font-bold">
               {user.username}{age > 0 && `, ${age}`}
             </h2>
-            <p className="text-base text-gray-200 line-clamp-2 mt-1">{user.bio}</p>
+            <p className="text-base text-gray-200 line-clamp-2">{user.bio}</p>
+            {user.lifestyle_tags && user.lifestyle_tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {user.lifestyle_tags.slice(0, 3).map(tag => (
+                  <Badge key={tag} variant="secondary" className="bg-white/20 text-white backdrop-blur-sm">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex justify-around items-center mt-6">
             <Button

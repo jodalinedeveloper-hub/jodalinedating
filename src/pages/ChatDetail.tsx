@@ -56,7 +56,7 @@ const ChatDetail = () => {
   });
 
   useEffect(() => {
-    if (!data?.matchId) return;
+    if (!data?.matchId || !currentUser) return;
 
     const channel = supabase
       .channel(`chat:${data.matchId}`)
@@ -64,7 +64,11 @@ const ChatDetail = () => {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `match_id=eq.${data.matchId}` },
         (payload) => {
-          setMessages((prevMessages) => [...prevMessages, payload.new as ChatMessage]);
+          // Only add the message if it's from the other user
+          // The sender's message is added optimistically
+          if (payload.new.sender_id !== currentUser.id) {
+            setMessages((prevMessages) => [...prevMessages, payload.new as ChatMessage]);
+          }
         }
       )
       .subscribe();
@@ -72,7 +76,7 @@ const ChatDetail = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [data?.matchId]);
+  }, [data?.matchId, currentUser]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
