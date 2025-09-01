@@ -14,13 +14,13 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Toggle } from "@/components/ui/toggle";
 
-interface Step3PreferencesProps {
+interface Step4PreferencesProps {
   form: UseFormReturn<any>;
 }
 
 const lifestyleTags = ["Travel", "Foodie", "Fitness", "Movies", "Music", "Art"];
 
-const Step3Preferences = ({ form }: Step3PreferencesProps) => {
+const Step4Preferences = ({ form }: Step4PreferencesProps) => {
   const handleTagToggle = (tag: string) => {
     const currentTags = form.getValues("lifestyleTags") || [];
     const newTags = currentTags.includes(tag)
@@ -141,4 +141,4 @@ const Step3Preferences = ({ form }: Step3PreferencesProps) => {
   );
 };
 
-export default Step3Preferences;
+export default Step4Preferences;

@@ -17,9 +17,13 @@ import {
 
 import Step1CoreDetails from "./signup/Step1CoreDetails";
 import Step2ProfileBasics from "./signup/Step2ProfileBasics";
-import Step3Preferences from "./signup/Step3Preferences";
+import Step3PhotoUpload from "./signup/Step3PhotoUpload";
+import Step4Preferences from "./signup/Step4Preferences";
 import StepIndicator from "./signup/StepIndicator";
 import { showError, showSuccess } from "@/utils/toast";
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const formSchema = z
   .object({
@@ -37,6 +41,17 @@ const formSchema = z
     bio: z.string().max(500, "Bio cannot exceed 500 characters.").optional(),
 
     // Step 3
+    photos: z.array(z.any())
+      .min(1, "Please upload at least one photo.")
+      .max(6, "You can upload a maximum of 6 photos.")
+      .refine(files => files.every(file => file instanceof File), "Invalid file format.")
+      .refine(files => files.every(file => file.size <= MAX_FILE_SIZE), `Max file size is 5MB.`)
+      .refine(
+        files => files.every(file => ACCEPTED_IMAGE_TYPES.includes(file.type)),
+        ".jpg, .jpeg, .png and .webp files are accepted."
+      ),
+
+    // Step 4
     relationshipGoals: z.enum(["casual", "long-term", "friendship"]),
     ageRange: z.array(z.number()).default([20, 35]),
     maxDistance: z.array(z.number()).default([50]),
@@ -67,12 +82,14 @@ const formSchema = z
 const stepFields = [
   ["email", "username", "dateOfBirth", "password", "confirmPassword"],
   ["gender", "orientation", "location", "bio"],
+  ["photos"],
   ["relationshipGoals", "ageRange", "maxDistance"],
 ];
 
 const stepDescriptions = [
     "Enter your details to create an account.",
     "Tell us a bit about yourself.",
+    "Add photos to your profile.",
     "What are you looking for in a match?",
 ]
 
@@ -88,6 +105,7 @@ export function SignupForm() {
       username: "",
       bio: "",
       location: "",
+      photos: [],
       ageRange: [20, 35],
       maxDistance: [50],
       dealBreakers: { smoker: false },
@@ -121,7 +139,7 @@ export function SignupForm() {
         <CardDescription>{stepDescriptions[currentStep]}</CardDescription>
       </CardHeader>
       <CardContent>
-        <StepIndicator currentStep={currentStep} />
+        <StepIndicator currentStep={currentStep} totalSteps={4} />
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
             console.error(errors);
@@ -129,7 +147,8 @@ export function SignupForm() {
           })} className="space-y-6 mt-6">
             {currentStep === 0 && <Step1CoreDetails form={form} />}
             {currentStep === 1 && <Step2ProfileBasics form={form} />}
-            {currentStep === 2 && <Step3Preferences form={form} />}
+            {currentStep === 2 && <Step3PhotoUpload form={form} />}
+            {currentStep === 3 && <Step4Preferences form={form} />}
 
             <div className="flex gap-4 justify-end">
               {currentStep > 0 && (
@@ -137,12 +156,12 @@ export function SignupForm() {
                   Back
                 </Button>
               )}
-              {currentStep < 2 && (
+              {currentStep < 3 && (
                 <Button type="button" onClick={next}>
                   Next
                 </Button>
               )}
-              {currentStep === 2 && (
+              {currentStep === 3 && (
                 <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
                   Sign Up
                 </Button>
