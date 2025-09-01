@@ -83,8 +83,16 @@ const Explore = () => {
       .on<UserProfile>(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'profiles' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['profiles', user.id] });
+        (payload) => {
+          const newProfile = payload.new as UserProfile;
+          setVisibleUsers((currentUsers) => {
+            // Check if user is not self and not already in the stack
+            if (newProfile.id !== user.id && !currentUsers.some(u => u.id === newProfile.id)) {
+              // Add new user to the end of the array, which becomes the top of the visual stack
+              return [...currentUsers, newProfile];
+            }
+            return currentUsers;
+          });
         }
       )
       .subscribe();
@@ -92,7 +100,7 @@ const Explore = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [user]);
 
   const handleSwipe = async (swipedUser: UserProfile, action: 'left' | 'right' | 'super') => {
     if (!user) return;
