@@ -6,3 +6,16 @@ export interface UserProfile {
   photos: string[];
   interests: string[];
 }
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  timestamp: string;
+  senderId: string; // ID of the user who sent the message
+}
+
+export interface ChatConversation {
+  id: string;
+  user: UserProfile; // The other user in the conversation
+  messages: ChatMessage[];
+}

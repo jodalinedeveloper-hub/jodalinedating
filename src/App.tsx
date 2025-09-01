@@ -14,6 +14,7 @@ import Matches from "./pages/Matches";
 import Chats from "./pages/Chats";
 import Premium from "./pages/Premium";
 import useAuthStore from "./store/authStore";
+import ChatDetail from "./pages/ChatDetail";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const AppRoutes = () => {
           <Route path="/chats" element={<Chats />} />
           <Route path="/premium" element={<Premium />} />
         </Route>
+        <Route path="/chats/:chatId" element={<ChatDetail />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />
