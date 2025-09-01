@@ -75,6 +75,25 @@ const Explore = () => {
     }
   }, [visibleUsers.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('realtime-profiles')
+      .on<UserProfile>(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'profiles' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['profiles', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
+
   const handleSwipe = async (swipedUser: UserProfile, action: 'left' | 'right' | 'super') => {
     if (!user) return;
     setVisibleUsers((prev) => prev.filter(u => u.id !== swipedUser.id));
