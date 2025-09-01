@@ -1,6 +1,5 @@
 import { UserProfile } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
-import { Link } from "react-router-dom";
 import { User } from "lucide-react";
 
 interface MatchCardProps {
@@ -11,7 +10,7 @@ const MatchCard = ({ user }: MatchCardProps) => {
   const photoUrl = user.photo_urls?.[0];
 
   return (
-    <Link to={`/chats/${user.id}`} className="block group">
+    <div className="block cursor-pointer group">
       <Card className="overflow-hidden relative aspect-[3/4] transition-all duration-300 group-hover:scale-105">
         {photoUrl ? (
           <img
@@ -29,7 +28,7 @@ const MatchCard = ({ user }: MatchCardProps) => {
           <p className="text-white font-bold text-lg truncate">{user.username}</p>
         </CardContent>
       </Card>
-    </Link>
+    </div>
   );
 };
 

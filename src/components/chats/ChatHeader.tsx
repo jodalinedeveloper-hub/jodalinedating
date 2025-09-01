@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { UserProfile } from "@/types";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ViewProfileSheet } from "@/components/profile/ViewProfileSheet";
 
 interface ChatHeaderProps {
   user: UserProfile;
@@ -18,11 +19,15 @@ const ChatHeader = ({ user }: ChatHeaderProps) => {
       <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
         <ChevronLeft className="w-6 h-6" />
       </Button>
-      <Avatar>
-        {photoUrl && <AvatarImage src={photoUrl} alt={user.username} />}
-        <AvatarFallback>{fallback}</AvatarFallback>
-      </Avatar>
-      <h2 className="font-semibold text-lg">{user.username}</h2>
+      <ViewProfileSheet user={user}>
+        <div className="flex items-center gap-3 cursor-pointer">
+          <Avatar>
+            {photoUrl && <AvatarImage src={photoUrl} alt={user.username} />}
+            <AvatarFallback>{fallback}</AvatarFallback>
+          </Avatar>
+          <h2 className="font-semibold text-lg">{user.username}</h2>
+        </div>
+      </ViewProfileSheet>
     </header>
   );
 };

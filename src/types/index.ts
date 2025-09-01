@@ -5,6 +5,7 @@ export interface UserProfile {
   bio: string;
   photo_urls: string[];
   lifestyle_tags: string[];
+  location?: string;
 }
 
 export interface ChatMessage {

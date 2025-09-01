@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/SessionContext";
 import { Loader2 } from "lucide-react";
+import { ViewProfileSheet } from "@/components/profile/ViewProfileSheet";
 
 const fetchMatches = async (userId: string | undefined): Promise<Match[]> => {
   if (!userId) return [];
@@ -68,7 +69,9 @@ const Matches = () => {
       {matches && matches.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {matches.map((match) => (
-            <MatchCard key={match.id} user={match.other_user} />
+            <ViewProfileSheet key={match.id} user={match.other_user}>
+              <MatchCard user={match.other_user} />
+            </ViewProfileSheet>
           ))}
         </div>
       ) : (
