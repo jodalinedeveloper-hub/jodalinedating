@@ -3,8 +3,10 @@ import { Match, UserProfile } from "@/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/SessionContext";
-import { Loader2 } from "lucide-react";
+import { MessageSquareOff } from "lucide-react";
 import { useEffect } from "react";
+import ChatListItemSkeleton from "@/components/skeletons/ChatListItemSkeleton";
+import EmptyState from "@/components/common/EmptyState";
 
 const fetchMatchesForChat = async (userId: string | undefined): Promise<Match[]> => {
   if (!userId) return [];
@@ -71,21 +73,28 @@ const Chats = () => {
     };
   }, [user, queryClient]);
 
-  if (isLoading) {
-    return <div className="container mx-auto p-4 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto" /></div>;
-  }
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-4">Chats</h1>
-      {chats && chats.length > 0 ? (
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <ChatListItemSkeleton key={index} />
+          ))}
+        </div>
+      ) : chats && chats.length > 0 ? (
         <div className="space-y-2">
           {chats.map((chat) => (
             <ChatListItem key={chat.id} chat={chat} />
           ))}
         </div>
       ) : (
-        <p className="text-muted-foreground">You have no active chats. Get a match to start talking!</p>
+        <EmptyState
+          icon={MessageSquareOff}
+          title="No active chats"
+          description="When you match with someone, your conversation will appear here."
+          action={{ label: "See Your Matches", to: "/matches" }}
+        />
       )}
     </div>
   );

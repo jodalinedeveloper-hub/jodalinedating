@@ -3,13 +3,14 @@ import { Match, UserProfile } from "@/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/SessionContext";
-import { Loader2 } from "lucide-react";
+import { HeartCrack } from "lucide-react";
 import { ViewProfileSheet } from "@/components/profile/ViewProfileSheet";
+import ProfileCardSkeleton from "@/components/skeletons/ProfileCardSkeleton";
+import EmptyState from "@/components/common/EmptyState";
 
 const fetchMatches = async (userId: string | undefined): Promise<Match[]> => {
   if (!userId) return [];
 
-  // 1. Fetch all match records for the current user
   const { data: matchesData, error: matchesError } = await supabase
     .from('matches')
     .select('*')
@@ -20,14 +21,12 @@ const fetchMatches = async (userId: string | undefined): Promise<Match[]> => {
     return [];
   }
 
-  // 2. Get the IDs of the other users in the matches
   const otherUserIds = matchesData.map(match => 
     match.user1_id === userId ? match.user2_id : match.user1_id
   );
 
   if (otherUserIds.length === 0) return [];
 
-  // 3. Fetch the profiles of all the other users
   const { data: profilesData, error: profilesError } = await supabase
     .from('profiles')
     .select('*')
@@ -38,7 +37,6 @@ const fetchMatches = async (userId: string | undefined): Promise<Match[]> => {
     return [];
   }
 
-  // 4. Combine the match data with the profile data
   const profilesMap = new Map(profilesData.map(p => [p.id, p]));
   const combinedMatches = matchesData.map(match => {
     const otherUserId = match.user1_id === userId ? match.user2_id : match.user1_id;
@@ -46,7 +44,7 @@ const fetchMatches = async (userId: string | undefined): Promise<Match[]> => {
       ...match,
       other_user: profilesMap.get(otherUserId) as UserProfile,
     };
-  }).filter(match => match.other_user); // Filter out any potential mismatches
+  }).filter(match => match.other_user);
 
   return combinedMatches as Match[];
 };
@@ -59,14 +57,16 @@ const Matches = () => {
     enabled: !!user,
   });
 
-  if (isLoading) {
-    return <div className="container mx-auto p-4 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto" /></div>;
-  }
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-4">Your Matches</h1>
-      {matches && matches.length > 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <ProfileCardSkeleton key={index} />
+          ))}
+        </div>
+      ) : matches && matches.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {matches.map((match) => (
             <ViewProfileSheet key={match.id} user={match.other_user}>
@@ -75,7 +75,12 @@ const Matches = () => {
           ))}
         </div>
       ) : (
-        <p className="text-muted-foreground">You have no matches yet. Keep swiping!</p>
+        <EmptyState
+          icon={HeartCrack}
+          title="No matches yet"
+          description="You haven't matched with anyone yet. Keep swiping to find your connection!"
+          action={{ label: "Start Swiping", to: "/explore" }}
+        />
       )}
     </div>
   );

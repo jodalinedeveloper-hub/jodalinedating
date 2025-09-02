@@ -2,9 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/SessionContext";
 import { UserProfile } from "@/types";
-import { Loader2 } from "lucide-react";
+import { SearchX } from "lucide-react";
 import { ViewProfileSheet } from "@/components/profile/ViewProfileSheet";
 import DiscoverProfileCard from "@/components/discover/DiscoverProfileCard";
+import ProfileCardSkeleton from "@/components/skeletons/ProfileCardSkeleton";
+import EmptyState from "@/components/common/EmptyState";
 
 const fetchAllProfiles = async (userId: string | undefined): Promise<UserProfile[]> => {
   if (!userId) return [];
@@ -31,14 +33,16 @@ const Discover = () => {
     enabled: !!user,
   });
 
-  if (isLoading) {
-    return <div className="container mx-auto p-4 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto" /></div>;
-  }
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-4">Discover</h1>
-      {profiles && profiles.length > 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-6">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <ProfileCardSkeleton key={index} />
+          ))}
+        </div>
+      ) : profiles && profiles.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-6">
           {profiles.map((profile) => (
             <ViewProfileSheet key={profile.id} user={profile}>
@@ -47,7 +51,11 @@ const Discover = () => {
           ))}
         </div>
       ) : (
-        <p className="text-muted-foreground">No other users found. Check back later!</p>
+        <EmptyState
+          icon={SearchX}
+          title="No one new to see"
+          description="It looks like there are no other users on the platform right now. Check back later!"
+        />
       )}
     </div>
   );
