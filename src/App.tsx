@@ -16,6 +16,7 @@ import Premium from "./pages/Premium";
 import Profile from "./pages/Profile";
 import ChatDetail from "./pages/ChatDetail";
 import { SessionContextProvider, useAuth } from "./contexts/SessionContext";
+import Discover from "./pages/Discover";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const AppRoutes = () => {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
+          <Route path="/discover" element={<Discover />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/matches" element={<Matches />} />
           <Route path="/chats" element={<Chats />} />
